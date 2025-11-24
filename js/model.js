@@ -1,5 +1,7 @@
 var canvasRef, scene, camera, renderer, clock, deltaTime, totalTime;
 
+var scale = 1.0;
+
 var arToolkitSource, arToolkitContext;
 
 var markerRoot1;
@@ -19,6 +21,9 @@ window.addEventListener('load', function() {
 			textureUrl = URL.createObjectURL(this.files[0]);
 		}
 	});
+	document.querySelector('input[id="scale"]').addEventListener('change', function() {
+		scale = this.value;
+	});
 });
 
 function initialization(mockup)
@@ -28,9 +33,10 @@ function initialization(mockup)
     {
         modelUrl = "models/valve-Assembly.obj";
         textureUrl = "models/valve-Assembly.mtl";
+		scale = 0.01;
     }
 
-    if (!modelUrl || !textureUrl) 
+    if (!modelUrl || !textureUrl || !scale) 
     {
         return;
     }
@@ -71,7 +77,10 @@ function initialization(mockup)
 
 	arToolkitSource = new THREEx.ArToolkitSource({
 		sourceType : 'webcam',
+        displayWidth: screen.width,
+        displayHeight: screen.height,
 	});
+
 
 	function onResize()
 	{
@@ -102,9 +111,14 @@ function initialization(mockup)
 		detectionMode: 'mono'
 	});
 	
-	// copy projection matrix to camera when initialization complete
 	arToolkitContext.init( function onCompleted(){
-		camera.projectionMatrix.copy( arToolkitContext.getProjectionMatrix() );
+
+		if (arToolkitContext.arController) {
+			arToolkitContext.arController.setProjectionNearPlane(10);
+			arToolkitContext.arController.setProjectionFarPlane(11); 
+
+			camera.projectionMatrix.copy( arToolkitContext.getProjectionMatrix() );
+		}
 	});
 
 	////////////////////////////////////////////////////////////
@@ -130,15 +144,19 @@ function initialization(mockup)
 
 					group.traverse(function (child) {
 						if (child instanceof THREE.Mesh) {
-							child.material.side = THREE.DoubleSide;
+							child.material.side = THREE.FrontSide;
 							child.castShadow = true;
 							child.receiveShadow = true;
+
+							child.material.polygonOffset = true;
+							child.material.polygonOffsetFactor = 2; 
+							child.material.polygonOffsetUnits = 2;
 						}
 					});
 
-					group.position.y = 1;
+					// group.position.y = 1;
 					group.rotateX(-Math.PI/2)
-					group.scale.set(0.01,0.01,0.01);
+					group.scale.set(scale,scale,scale);
 					markerRoot1.add(group);
 					
 				}, onProgress, onError );
